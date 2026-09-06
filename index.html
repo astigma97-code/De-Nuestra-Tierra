@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Caserito · Vitrina local de San Marcos, Cajamarca</title>
+  <meta name="description" content="El mercado de San Marcos abierto todo el día: productos de tiendas, chacras y talleres, directo por WhatsApp.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,600;0,700;1,500&family=Karla:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="saltar" href="#contenido">Ir al contenido</a>
+
+  <!-- ===== Sprite de iconos ===== -->
+  <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+    <symbol id="i-whatsapp" viewBox="0 0 24 24">
+      <path fill="currentColor" stroke="none" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.297-.497.1-.198.05-.371-.025-.52-.074-.149-.668-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/>
+    </symbol>
+    <symbol id="i-lupa" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></symbol>
+    <symbol id="i-izq" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></symbol>
+    <symbol id="i-der" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></symbol>
+  </svg>
+
+  <div class="aviso" id="aviso">San Marcos, Cajamarca · Pedidos y consultas directo por WhatsApp</div>
+
+  <!-- ===== Cabecera ===== -->
+  <header class="cabecera" id="inicio">
+    <div class="contenedor cabecera-fila">
+      <a class="marca" href="#inicio">
+        <span class="marca-logo">🧺</span>
+        <span class="marca-texto"><strong>Caserito</strong><small>Vitrina local de San Marcos</small></span>
+      </a>
+      <nav class="navegacion" id="navegacion" aria-label="Navegación principal">
+        <a href="#productos">Explorar</a>
+        <a href="#vendedores">Vendedores</a>
+        <a href="#como-funciona">Cómo funciona</a>
+        <a href="#preguntas">Preguntas</a>
+      </nav>
+      <div class="cabecera-acciones">
+        <div class="zona-usuario" id="zona-usuario"></div>
+        <button class="boton-menu" id="boton-menu" aria-label="Abrir menú" aria-expanded="false">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main id="contenido">
+
+    <!-- ===== Portada ===== -->
+    <section class="portada">
+      <div class="contenedor portada-rejilla">
+        <div>
+          <p class="portada-etiqueta">Compra local · Vende local</p>
+          <h1>El mercado de San Marcos, <em>abierto todo el día</em>.</h1>
+          <p class="portada-descripcion">
+            Encuentra lo que producen y preparan las tiendas, chacras y talleres de tu
+            localidad. Pide directo por WhatsApp, sin intermediarios y al precio de siempre.
+          </p>
+          <form class="buscador" id="form-busqueda" role="search">
+            <svg class="icono"><use href="#i-lupa"/></svg>
+            <input type="search" id="buscador" placeholder="Busca queso, pan, miel…" aria-label="Buscar productos">
+            <button class="boton boton--verde" type="submit">Buscar</button>
+          </form>
+          <p class="portada-sugerencias">Buscan mucho:
+            <a href="#productos" data-buscar="queso">queso fresco</a>
+            <a href="#productos" data-buscar="pan">pan de hogar</a>
+            <a href="#productos" data-buscar="miel">miel</a>
+          </p>
+          <ul class="portada-metricas">
+            <li><strong data-contador="productos">–</strong><span>productos en vitrina</span></li>
+            <li><strong data-contador="vendedores">–</strong><span>vendedores locales</span></li>
+            <li><strong data-contador="categorias">–</strong><span>categorías</span></li>
+          </ul>
+        </div>
+
+        <div class="portada-visual" aria-hidden="true">
+          <div class="tarjeta-chat">
+            <div class="tarjeta-chat-cabecera">
+              <span class="avatar">🧀</span>
+              <div><strong>Tienda Te La Comes</strong><br><small>en línea</small></div>
+            </div>
+            <div class="burbuja burbuja--mia">Hola caserita 🙌 vi tu queso fresco en Caserito, ¿sigue habiendo?</div>
+            <div class="burbuja burbuja--suya">¡Sí! Te aparto el kilo y te lo dejo por tu casa hoy mismo.</div>
+          </div>
+          <div class="tarjeta-mini tarjeta-mini--a"><span>🥖</span><div><strong>Pan de hogar</strong><small>S/ 1.50 · La Espiga</small></div></div>
+          <div class="tarjeta-mini tarjeta-mini--b"><span>🍯</span><div><strong>Miel pura 350 ml</strong><small>S/ 25 · Mieles del Valle</small></div></div>
+          <span class="sello">100 % de aquí 🌿</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Productos (vitrina dinámica) ===== -->
+    <section class="productos" id="productos">
+      <div class="contenedor">
+        <div class="seccion-cabecera">
+          <div>
+            <h2>La vitrina de hoy</h2>
+            <p id="conteo-productos">Cargando productos…</p>
+          </div>
+          <label class="ordenar">Ordenar:
+            <select id="ordenar">
+              <option value="recientes">Más recientes</option>
+              <option value="precio-asc">Precio: menor a mayor</option>
+              <option value="precio-desc">Precio: mayor a menor</option>
+              <option value="nombre">Nombre A–Z</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="filtros">
+          <button class="chip chip--activo" data-filtro="todos" aria-pressed="true">Todos</button>
+          <button class="chip" data-filtro="alimentos" aria-pressed="false">Alimentos</button>
+          <button class="chip" data-filtro="lacteos" aria-pressed="false">Lácteos</button>
+          <button class="chip" data-filtro="panaderia" aria-pressed="false">Panadería</button>
+          <button class="chip" data-filtro="agro" aria-pressed="false">Agro</button>
+          <button class="chip" data-filtro="artesania" aria-pressed="false">Artesanía</button>
+          <button class="chip" data-filtro="textiles" aria-pressed="false">Textiles</button>
+          <button class="chip" data-filtro="otro" aria-pressed="false">Otro</button>
+        </div>
+
+        <div class="productos-rejilla" id="lista-productos"></div>
+
+        <div class="sin-resultados" id="sin-resultados" hidden>
+          <p class="sin-resultados-titulo">No encontramos productos.</p>
+          <p>Prueba con otra categoría o búscalos por su nombre.</p>
+          <button class="boton boton--linea" data-limpiar-filtros>Ver todo de nuevo</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== CTA vender ===== -->
+    <section class="cta-vender" id="vender">
+      <div class="contenedor cta-vender-caja">
+        <div class="cta-vender-texto">
+          <h2>¿Tienes una tienda, una chacra o un taller?</h2>
+          <p>Crea tu vitrina gratis en minutos, publica tus productos con fotos y recibe
+             los pedidos directo en tu WhatsApp. Tú pones el precio y el trato.</p>
+          <ul class="cta-vender-lista">
+            <li><svg class="icono"><use href="#i-check"/></svg> Perfil gratis, para siempre</li>
+            <li><svg class="icono"><use href="#i-check"/></svg> Publica todos los productos que quieras, con fotos</li>
+            <li><svg class="icono"><use href="#i-check"/></svg> Pagos y entregas se acuerdan por WhatsApp</li>
+          </ul>
+          <div class="cta-vender-acciones">
+            <button class="boton boton--ambar" data-abrir-auth="crear">Crear mi negocio</button>
+            <a class="enlace-claro" href="#vendedores">Ver tiendas que ya venden →</a>
+          </div>
+        </div>
+        <p class="cta-vender-dato">
+          “Publiqué un martes. El sábado ya tenía pedidos por WhatsApp.”
+          <small>— Rosa, Panadería La Espiga</small>
+        </p>
+      </div>
+    </section>
+
+    <!-- ===== Vendedores ===== -->
+    <section class="vendedores" id="vendedores">
+      <div class="contenedor">
+        <div class="seccion-cabecera">
+          <div>
+            <h2>Vendedores locales</h2>
+            <p>Conoce quién está detrás de cada producto.</p>
+          </div>
+        </div>
+        <div class="vendedores-rejilla" id="lista-vendedores"></div>
+      </div>
+    </section>
+
+    <!-- ===== Cómo funciona ===== -->
+    <section class="pasos" id="como-funciona">
+      <div class="contenedor">
+        <h2>¿Cómo funciona?</h2>
+        <p class="pasos-intro">Nada de carritos complicados ni cuentas obligatorias: aquí se conversa, se acuerda y se vende.</p>
+        <div class="pasos-rejilla">
+          <div class="pasos-columna">
+            <h3>Para comprar</h3>
+            <ol>
+              <li><strong>Explora la vitrina</strong><span>Filtra por categoría o busca por nombre lo que necesitas.</span></li>
+              <li><strong>Escribe al caserito</strong><span>Toca el botón verde y coordina cantidad, precio y entrega por WhatsApp.</span></li>
+              <li><strong>Recibe o recoge</strong><span>Acuerda el pago en efectivo, Yape o Plin al recibir tu pedido.</span></li>
+            </ol>
+          </div>
+          <div class="pasos-columna">
+            <h3>Para vender</h3>
+            <ol>
+              <li><strong>Registra tu negocio</strong><span>Gratis, con el nombre de tu tienda y tu número de WhatsApp.</span></li>
+              <li><strong>Publica tus productos</strong><span>Fotos, precio y descripción. Listo en minutos.</span></li>
+              <li><strong>Vende sin intermediarios</strong><span>Cada pedido llega a tu WhatsApp y el trato es tuyo.</span></li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Ventajas ===== -->
+    <section class="ventajas">
+      <div class="contenedor">
+        <div class="ventajas-lista">
+          <div class="ventaja"><span>🏪</span><h3>Negocios de verdad</h3><p>Tiendas y productores con nombre y apellido, de tu propio pueblo.</p></div>
+          <div class="ventaja"><span>🧺</span><h3>Fresco y cercano</h3><p>Lo que se cosecha, se hornea y se teje aquí mismo, en San Marcos.</p></div>
+          <div class="ventaja"><span>💬</span><h3>Trato directo</h3><p>Hablas con el vendedor de siempre, sin comisiones ni letras chicas.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Testimonio ===== -->
+    <section class="testimonio">
+      <blockquote>Antes vendía solo a mis vecinos del jirón. Ahora me escriben hasta de Cajamarca para apartar miel.</blockquote>
+      <p class="testimonio-autor">Don Segundo · Mieles del Valle</p>
+    </section>
+
+    <!-- ===== Preguntas ===== -->
+    <section class="preguntas" id="preguntas">
+      <div class="contenedor preguntas-caja">
+        <h2>Preguntas frecuentes</h2>
+        <details>
+          <summary>¿Caserito tiene algún costo?</summary>
+          <p>No. Comprar, crear tu tienda y publicar productos es completamente gratis. Los destacados en la portada son opcionales y ayudan a mantener la vitrina.</p>
+        </details>
+        <details>
+          <summary>¿Cómo pago mis pedidos?</summary>
+          <p>Directo con el vendedor: efectivo contra entrega, o Yape / Plin si ambos lo prefieren. Caserito no maneja tu dinero.</p>
+        </details>
+        <details>
+          <summary>¿Hacen entregas a domicilio?</summary>
+          <p>Cada vendedor coordina su entrega por WhatsApp: en la plaza, en el mercado o hasta tu casa, según la distancia y el pedido.</p>
+        </details>
+        <details>
+          <summary>¿Puedo vender si no tengo tienda física?</summary>
+          <p>Sí. Basta con que produzcas o prepares algo y tengas un WhatsApp. Muchos vendedores empezaron así, desde su cocina o su chacra.</p>
+        </details>
+      </div>
+    </section>
+  </main>
+
+  <!-- ===== Pie ===== -->
+  <footer class="pie">
+    <div class="contenedor">
+      <div class="pie-rejilla">
+        <div class="pie-marca">
+          <a class="marca" href="#inicio">
+            <span class="marca-logo">🧺</span>
+            <span class="marca-texto"><strong>Caserito</strong><small>Vitrina local de San Marcos</small></span>
+          </a>
+          <p>El mercado de tu pueblo, abierto todo el día. Hecho con cariño en Cajamarca 🌿</p>
+        </div>
+        <div class="pie-col">
+          <h3>Explorar</h3>
+          <a href="#productos">Productos</a>
+          <a href="#vendedores">Vendedores</a>
+          <a href="#como-funciona">Cómo funciona</a>
+          <a href="#preguntas">Preguntas frecuentes</a>
+        </div>
+        <div class="pie-col">
+          <h3>Vender</h3>
+          <button class="pie-enlace" data-abrir-auth="crear">Crear mi tienda</button>
+          <a href="#vender">Beneficios</a>
+          <a href="#vendedores">Tiendas destacadas</a>
+        </div>
+        <div class="pie-col">
+          <h3>Contacto</h3>
+          <p>WhatsApp: 999 999 999<br>hola@caserito.pe<br>Plaza de Armas s/n, San Marcos — Cajamarca, Perú</p>
+        </div>
+      </div>
+      <div class="pie-base">
+        <span>© 2026 Caserito · Vitrina digital de negocios locales.</span>
+        <a class="pie-subir" href="#inicio">Volver arriba ↑</a>
+        <span class="pie-nota">El registro y las publicaciones son gratuitas; los destacados y campañas son opcionales.</span>
+      </div>
+    </div>
+  </footer>
+
+  <a class="wsp-flotante" href="https://wa.me/51999999999" target="_blank" rel="noopener" aria-label="Escribir por WhatsApp">
+    <svg class="icono"><use href="#i-whatsapp"/></svg>
+  </a>
+
+  <!-- ===== Modal: entrar / crear cuenta ===== -->
+  <dialog class="modal" id="modal-auth">
+    <button class="modal-cerrar" data-cerrar aria-label="Cerrar"><svg class="icono"><use href="#i-x"/></svg></button>
+    <div class="modal-form">
+      <div class="auth-tabs">
+        <button class="chip chip--activo" data-tab="entrar" type="button">Ya tengo cuenta</button>
+        <button class="chip" data-tab="crear" type="button">Crear mi tienda</button>
+      </div>
+
+      <form id="form-entrar">
+        <div class="modal-campos">
+          <label>Correo<input type="email" id="e-email" required autocomplete="email"></label>
+          <label>Contraseña<input type="password" id="e-pass" required minlength="6" autocomplete="current-password"></label>
+        </div>
+        <div class="modal-pie"><button class="boton boton--verde" type="submit">Entrar</button></div>
+      </form>
+
+      <form id="form-crear" hidden>
+        <div class="modal-campos">
+          <label>Nombre del negocio<input id="c-negocio" required maxlength="60"></label>
+          <label>Tu nombre<input id="c-responsable" required maxlength="60"></label>
+          <label>WhatsApp<input id="c-whats" inputmode="numeric" required placeholder="999 999 999"></label>
+          <label>¿Qué vendes?
+            <select id="c-categoria">
+              <option>Alimentos</option><option>Lácteos</option><option>Panadería</option>
+              <option>Agro</option><option>Artesanía</option><option>Textiles</option><option>Otro</option>
+            </select>
+          </label>
+          <label class="modal-ancho">Correo<input type="email" id="c-email" required autocomplete="email"></label>
+          <label class="modal-ancho">Contraseña (mínimo 6 caracteres)<input type="password" id="c-pass" required minlength="6" autocomplete="new-password"></label>
+        </div>
+        <div class="modal-pie"><button class="boton boton--ambar" type="submit">Enviar y crear mi tienda</button></div>
+      </form>
+
+      <p class="modal-nota" id="auth-error" hidden></p>
+      <p class="modal-nota">Te escribiremos por WhatsApp para confirmar tu registro. Sin costos, sin contratos.</p>
+    </div>
+  </dialog>
+
+  <!-- ===== Modal: Mi tienda (perfil + publicar + administrar) ===== -->
+  <dialog class="modal dialog-ancho" id="modal-panel">
+    <button class="modal-cerrar" data-cerrar aria-label="Cerrar"><svg class="icono"><use href="#i-x"/></svg></button>
+    <div class="modal-form">
+      <div class="modal-cabecera">
+        <div><h2>Mi tienda</h2><p>Edita tu perfil, publica productos y administra tu vitrina.</p></div>
+      </div>
+
+      <h3>1 · Mi perfil de vendedor</h3>
+      <form id="form-perfil">
+        <div class="fila-avatar">
+          <span class="preview-avatar" id="avatar-preview">🏪</span>
+          <div class="campo-avatar">
+            <label class="boton boton--linea boton-chico">📷 Subir foto de perfil
+              <input type="file" id="p-avatar" accept="image/*" hidden>
+            </label>
+            <small>Si no subes foto, usamos tu emoji. Puedes cambiarla cuando quieras.</small>
+          </div>
+        </div>
+        <div class="modal-campos">
+          <label>Nombre del negocio<input id="p-negocio" required maxlength="60"></label>
+          <label>Tu nombre<input id="p-responsable" maxlength="60"></label>
+          <label>WhatsApp<input id="p-whats" inputmode="numeric" required></label>
+          <label>Categoría principal
+            <select id="p-categoria">
+              <option>Alimentos</option><option>Lácteos</option><option>Panadería</option>
+              <option>Agro</option><option>Artesanía</option><option>Textiles</option><option>Otro</option>
+            </select>
+          </label>
+          <label class="modal-ancho">Dirección / referencia<input id="p-direccion" placeholder="Ej. Jr. Junín 123, frente a la plaza"></label>
+          <label class="modal-ancho">Emoji de tu tienda<input id="p-emoji" maxlength="4" placeholder="🏪"></label>
+          <label class="modal-ancho">Breve descripción de tu negocio
+            <textarea id="p-descripcion" rows="3" maxlength="240" placeholder="Ej. Preparamos pan de hogar todos los días desde 1998. Horneamos a las 7 am y 4 pm."></textarea>
+          </label>
+        </div>
+        <div class="modal-pie"><button class="boton boton--verde" type="submit" id="btn-guardar-perfil">Guardar mi perfil</button></div>
+        <p class="modal-nota" id="perfil-msg" hidden></p>
+      </form>
+
+      <h3>2 · Publicar un producto</h3>
+      <form id="form-producto">
+        <div class="modal-campos">
+          <label>Nombre del producto<input id="g-nombre" required maxlength="80" placeholder="Ej. Queso fresco de chacra"></label>
+          <label>Categoría
+            <select id="g-categoria">
+              <option>Alimentos</option><option>Lácteos</option><option>Panadería</option>
+              <option>Agro</option><option>Artesanía</option><option>Textiles</option><option>Otro</option>
+            </select>
+          </label>
+          <label>Precio (S/)<input id="g-precio" type="number" min="0" step="0.10" required placeholder="18"></label>
+          <label class="modal-ancho">Descripción
+            <textarea id="g-detalle" rows="2" maxlength="180" placeholder="Presentación, horario de horneado, variedades…"></textarea>
+          </label>
+        </div>
+
+        <div class="foto-picker">
+          <label class="boton boton--linea" for="g-fotos">📷 <span id="g-fotos-label">Elegir fotos del producto</span></label>
+          <input type="file" id="g-fotos" accept="image/*" multiple hidden>
+          <p class="modal-nota">Puedes elegir hasta 6 fotos desde tu dispositivo; se mostrarán como carrusel.</p>
+          <div class="fotos-preview" id="fotos-preview"></div>
+        </div>
+
+        <div class="modal-pie"><button class="boton boton--ambar" type="submit" id="btn-publicar">Publicar en la vitrina</button></div>
+        <p class="modal-nota" id="producto-msg" hidden></p>
+      </form>
+
+      <h3>3 · Mis productos publicados</h3>
+      <div class="mini-lista" id="lista-mis-productos"></div>
+    </div>
+  </dialog>
+
+  <!-- ===== Modal: detalle de producto (con carrusel) ===== -->
+  <dialog class="modal dialog-ancho" id="modal-producto">
+    <button class="modal-cerrar" data-cerrar aria-label="Cerrar"><svg class="icono"><use href="#i-x"/></svg></button>
+    <div class="detalle-producto">
+      <div class="carrusel" id="detalle-carrusel">
+        <div class="carrusel-pista" id="carrusel-pista"></div>
+        <button class="carrusel-flecha carrusel-flecha--izq" id="carrusel-prev" aria-label="Foto anterior"><svg class="icono"><use href="#i-izq"/></svg></button>
+        <button class="carrusel-flecha carrusel-flecha--der" id="carrusel-next" aria-label="Foto siguiente"><svg class="icono"><use href="#i-der"/></svg></button>
+        <div class="carrusel-puntos" id="carrusel-puntos"></div>
+      </div>
+      <div class="detalle-info">
+        <span class="detalle-etiqueta" id="detalle-categoria"></span>
+        <h2 id="detalle-nombre"></h2>
+        <p class="detalle-descripcion" id="detalle-detalle"></p>
+        <div class="detalle-precio" id="detalle-precio"></div>
+        <a class="boton boton--verde detalle-wsp" id="detalle-wsp" target="_blank" rel="noopener">
+          <svg class="icono"><use href="#i-whatsapp"/></svg>Pedir por WhatsApp
+        </a>
+        <button type="button" class="detalle-vendedor" id="detalle-vendedor">
+          <span class="detalle-vendedor-avatar" id="detalle-vendedor-avatar">🏪</span>
+          <span class="detalle-vendedor-texto"><small>Vendido por</small><strong id="detalle-vendedor-nombre"></strong></span>
+          <span class="detalle-ver-tienda">Ver tienda →</span>
+        </button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- ===== Modal: perfil público de la tienda ===== -->
+  <dialog class="modal dialog-ancho" id="modal-tienda">
+    <button class="modal-cerrar" data-cerrar aria-label="Cerrar"><svg class="icono"><use href="#i-x"/></svg></button>
+    <div class="tienda-cabecera">
+      <span class="tienda-avatar" id="tienda-avatar">🏪</span>
+      <div class="tienda-titulo">
+        <h2 id="tienda-nombre"></h2>
+        <p id="tienda-responsable"></p>
+        <p class="tienda-direccion" id="tienda-direccion"></p>
+      </div>
+      <a class="boton-wsp" id="tienda-wsp" target="_blank" rel="noopener">
+        <svg class="icono"><use href="#i-whatsapp"/></svg>WhatsApp
+      </a>
+    </div>
+    <div class="tienda-cuerpo">
+      <p class="tienda-descripcion" id="tienda-descripcion"></p>
+      <div class="tienda-chips">
+        <span class="chip" id="tienda-categoria"></span>
+        <span class="chip" id="tienda-conteo"></span>
+      </div>
+      <h3>Productos de esta tienda</h3>
+      <div class="productos-rejilla" id="tienda-productos"></div>
+    </div>
+  </dialog>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="script.js"></script>
+</body>
+</html>
