@@ -63,7 +63,26 @@ function guardarProductoLocal(producto) {
 }
 async function guardarDestacado(tabla, id, destacado, hasta) {
   const completo = await db.from(tabla).upsert({ id, destacado, destacado_hasta: hasta });
-  if (completo.error) await db.from(tabla).upsert({ id, destacado });
+  if (!completo.error) return;
+  const compatible = await db.from(tabla).upsert({ id, destacado });
+  if (compatible.error) throw compatible.error;
+}
+
+async function eliminarRegistros(tabla, filtros = []) {
+  let consulta = db.from(tabla).delete();
+  filtros.forEach(([campo, valor]) => { consulta = consulta.eq(campo, valor); });
+  const resultado = await consulta;
+  if (resultado.error) throw resultado.error;
+}
+async function eliminarRegistro(tabla, id, filtros = []) {
+  await eliminarRegistros(tabla, [['id', id], ...filtros]);
+}
+
+async function eliminarTienda(id) {
+  const idsProductos = productos.filter(producto => producto.vendedor_id === id).map(producto => producto.id);
+  await eliminarRegistros('productos', [['vendedor_id', id]]);
+  await eliminarRegistro('vendedores', id);
+  return idsProductos;
 }
 const espera = (fn, ms = 220) => { let t; return () => { clearTimeout(t); t = setTimeout(fn, ms); }; };
 
@@ -254,7 +273,8 @@ const makeLocalDb = () => {
 
 document.head.insertAdjacentHTML('beforeend', '<style>[hidden]{display:none!important}</style>');
 
-const db = window.supabase && !SUPABASE_URL.includes('TU-PROYECTO') ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : makeLocalDb();
+const usaSupabase = Boolean(window.supabase && !SUPABASE_URL.includes('TU-PROYECTO'));
+const db = usaSupabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : makeLocalDb();
 
 /* ---------- Estado ---------- */
 let productos = [], vendedores = {}, usuario = null, miPerfil = null;
@@ -296,17 +316,24 @@ const modalAdmin = $('#modal-admin');
 const modalDetalle = $('#modal-producto');
 const modalTienda = $('#modal-tienda');
 $('#publicar-contenedor').append($('#seccion-publicar'));
-const fraseSlogan = [
-  'abierto todo el día',
-  'fresco y cercano',
-  'hecho con identidad',
-  'listo para llevarte lo mejor',
-  'productos que cuentan historias',
-  'directo de nuestras manos a tu mesa',
-  'compra local, apoya lo nuestro',
-  'lo bueno de San Marcos, más cerca',
-  'cada día, algo nuevo de nuestra tierra'
-];
+const frasesPorHorario = {
+  mañana: [
+    'fresco y cercano',
+    'directo de nuestras manos a tu mesa',
+    'despierto desde temprano'
+  ],
+  tarde: [
+    'listo para llevarte lo mejor',
+    'lo bueno de San Marcos, más cerca',
+    'hecho con identidad'
+  ],
+  noche: [
+    'abierto todo el día',
+    'productos que cuentan historias',
+    'compra local, apoya lo nuestro',
+    'cada día, algo nuevo de nuestra tierra'
+  ]
+};
 const INTERVALO_SLOGAN = 10 * 60 * 1000;
 const INTERVALO_TESTIMONIO = 5 * 60 * 1000;
 let intervaloTestimonios = null;
@@ -621,7 +648,7 @@ async function cargarPerfil() {
 }
 
 function pintarZonaUsuario() {
-  if (usuario && miPerfil && usuario.email === ADMIN_EMAIL) {
+  if (usuario && usuario.email === ADMIN_EMAIL) {
     zona.innerHTML = `<button type="button" class="chip chip-avatar chip--activo" data-accion="admin" title="Panel de administración"> <span class="admin-logo"><img src="DE%20NUESTRA%20TIERRA%20SM.jpeg" alt=""></span>Administración</button> <button type="button" class="boton boton--linea" data-accion="salir">Salir</button>`;
   } else if (usuario && miPerfil) {
     const av = urlImagen(miPerfil.avatar_url) ? `<img src="${esc(urlImagen(miPerfil.avatar_url))}" alt="">` : esc(miPerfil.avatar_emoji || '🏪');
@@ -684,6 +711,12 @@ $('#form-entrar').addEventListener('submit', async e => {
   const password = $('#e-pass').value;
   try {
     if (email.toLowerCase() === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+      if (usaSupabase) {
+        const { error } = await db.auth.signInWithPassword({ email, password });
+        if (error) return errAuth(traducir(error.message));
+        modalAuth.close(); e.target.reset();
+        return;
+      }
       usuario = { id: 'admin', email: ADMIN_EMAIL, user_metadata: { negocio: 'Administración' } };
       miPerfil = { id: 'admin', negocio: 'Administración', responsable: 'Admin', whatsapp: CONTACTO_WHATSAPP, categoria: 'General', descripcion: 'Panel de administración', avatar_emoji: '🏞️', avatar_url: '' };
       localStorage.setItem('de_nuestra_tierra_user', JSON.stringify(usuario));
@@ -800,19 +833,20 @@ function renderAdminPanel() {
   const tiendasActuales = Object.values(vendedores).filter(v => !esDatoDemo(v));
   const productosActuales = productos.filter(p => !esDatoDemo(p));
 
-  const reseñas = (state.reseñas || []).filter(r => !r.aprobado);
+  const reseñas = state.reseñas || [];
   adminResenas.innerHTML = reseñas.length
     ? reseñas.map(r => `
         <div class="admin-item">
           <strong>${esc(r.nombre)} · ${esc(r.negocio)}</strong>
           <small>${esc(r.texto)}</small>
+          <small>Estado: ${r.aprobado ? 'Aprobada' : 'Pendiente de revisión'}</small>
           <div class="admin-actions">
-            <button type="button" class="boton-ok" data-reseña-aprobar="${r.id}">Aprobar</button>
+            ${r.aprobado ? '' : `<button type="button" class="boton-ok" data-reseña-aprobar="${r.id}">Aprobar</button>`}
             <button type="button" class="boton-peligro" data-reseña-eliminar="${r.id}">Eliminar</button>
           </div>
         </div>
       `).join('')
-    : '<p class="producto-detalle">No hay reseñas pendientes.</p>';
+    : '<p class="producto-detalle">No hay reseñas para revisar.</p>';
 
   adminTiendas.innerHTML = tiendasActuales.map(v => `
     <div class="admin-item">
@@ -905,6 +939,7 @@ $('#admin-reseñas').addEventListener('click', e => {
     renderizarReseñas();
   }
   if (eliminar) {
+    if (!confirm('¿Eliminar esta reseña?')) return;
     state.reseñas = state.reseñas.filter(r => r.id !== eliminar.dataset.reseñaEliminar);
     writeLocalState(state);
     renderAdminPanel();
@@ -919,21 +954,37 @@ $('#admin-tiendas').addEventListener('click', async e => {
   if (destacar) {
     const tienda = vendedores[destacar.dataset.tiendaDestacar];
     if (tienda) {
-      tienda.destacado = !destacadoVigente(tienda);
-      tienda.destacado_hasta = tienda.destacado ? new Date(Date.now() + 30 * 86400000).toISOString() : null;
-      state.vendedores[tienda.id] = { ...(state.vendedores[tienda.id] || {}), ...tienda };
-      writeLocalState(state);
-      await guardarDestacado('vendedores', tienda.id, tienda.destacado, tienda.destacado_hasta);
-      await cargarDatos();
-      renderAdminPanel();
+      try {
+        const destacado = !destacadoVigente(tienda);
+        const hasta = destacado ? new Date(Date.now() + 30 * 86400000).toISOString() : null;
+        await guardarDestacado('vendedores', tienda.id, destacado, hasta);
+        tienda.destacado = destacado;
+        tienda.destacado_hasta = hasta;
+        state.vendedores[tienda.id] = { ...(state.vendedores[tienda.id] || {}), ...tienda };
+        writeLocalState(state);
+        await cargarDatos();
+        renderAdminPanel();
+      } catch (error) {
+        alert(`No se pudo actualizar el destacado de la tienda: ${error.message}`);
+      }
     }
   }
   if (eliminar) {
-    await db.from('vendedores').delete().eq('id', eliminar.dataset.tiendaEliminar);
-    delete state.vendedores[eliminar.dataset.tiendaEliminar];
-    writeLocalState(state);
-    await cargarDatos();
-    renderAdminPanel();
+    if (!confirm('¿Eliminar esta tienda? La acción no se puede deshacer.')) return;
+    try {
+      const tiendaId = eliminar.dataset.tiendaEliminar;
+      const idsProductos = await eliminarTienda(tiendaId);
+      delete state.vendedores[tiendaId];
+      state.productos = state.productos.filter(producto => producto.vendedor_id !== tiendaId);
+      state.solicitudesDestacado = (state.solicitudesDestacado || []).filter(solicitud =>
+        solicitud.vendedor_id !== tiendaId && !idsProductos.includes(solicitud.producto_id)
+      );
+      writeLocalState(state);
+      await cargarDatos();
+      renderAdminPanel();
+    } catch (error) {
+      alert(`No se pudo eliminar la tienda: ${error.message}`);
+    }
   }
 });
 
@@ -958,30 +1009,43 @@ $('#admin-productos').addEventListener('click', async e => {
       producto.destacado = true;
       producto.destacado_hasta = fecha.toISOString();
     }
-    guardarProductoLocal(producto);
-    await guardarDestacado('productos', producto.id, producto.destacado, producto.destacado_hasta);
-    await cargarDatos();
-    guardarProductoLocal(productos.find(item => item.id === producto.id) || producto);
-    renderAdminPanel();
+    try {
+      await guardarDestacado('productos', producto.id, producto.destacado, producto.destacado_hasta);
+      guardarProductoLocal(producto);
+      await cargarDatos();
+      guardarProductoLocal(productos.find(item => item.id === producto.id) || producto);
+      renderAdminPanel();
+    } catch (error) {
+      alert(`No se pudo guardar la fecha del destacado: ${error.message}`);
+    }
     return;
   }
   if (destacar) {
     const producto = productos.find(p => p.id === destacar.dataset.productoDestacar);
     if (producto) {
-      producto.destacado = !destacadoVigente(producto);
-      producto.destacado_hasta = producto.destacado ? new Date(Date.now() + 30 * 86400000).toISOString() : null;
-      guardarProductoLocal(producto);
-      await guardarDestacado('productos', producto.id, producto.destacado, producto.destacado_hasta);
-      await cargarDatos();
+      try {
+        producto.destacado = !destacadoVigente(producto);
+        producto.destacado_hasta = producto.destacado ? new Date(Date.now() + 30 * 86400000).toISOString() : null;
+        await guardarDestacado('productos', producto.id, producto.destacado, producto.destacado_hasta);
+        guardarProductoLocal(producto);
+        await cargarDatos();
+      } catch (error) {
+        alert(`No se pudo actualizar el destacado del producto: ${error.message}`);
+      }
     }
     renderAdminPanel();
   }
   if (eliminar) {
-    await db.from('productos').delete().eq('id', eliminar.dataset.productoEliminar);
-    state.productos = state.productos.filter(p => p.id !== eliminar.dataset.productoEliminar);
-    writeLocalState(state);
-    await cargarDatos();
-    renderAdminPanel();
+    if (!confirm('¿Eliminar este producto? La acción no se puede deshacer.')) return;
+    try {
+      await eliminarRegistro('productos', eliminar.dataset.productoEliminar);
+      state.productos = state.productos.filter(p => p.id !== eliminar.dataset.productoEliminar);
+      writeLocalState(state);
+      await cargarDatos();
+      renderAdminPanel();
+    } catch (error) {
+      alert(`No se pudo eliminar el producto: ${error.message}`);
+    }
   }
 });
 
@@ -994,17 +1058,22 @@ $('#admin-solicitudes').addEventListener('click', async e => {
   const solicitud = (state.solicitudesDestacado || []).find(s => s.id === id);
   if (!solicitud) return;
   const producto = state.productos.find(p => p.id === solicitud.producto_id);
-  if (aprobar && producto) {
-    producto.destacado = true;
-    producto.destacado_hasta = new Date(Date.now() + solicitud.dias * 86400000).toISOString();
-    await guardarDestacado('productos', producto.id, true, producto.destacado_hasta);
-    solicitud.estado = 'aprobada';
-    solicitud.aprobada_en = new Date().toISOString();
+  try {
+    if (aprobar) {
+      if (!producto) throw new Error('El producto solicitado ya no existe.');
+      producto.destacado = true;
+      producto.destacado_hasta = new Date(Date.now() + solicitud.dias * 86400000).toISOString();
+      await guardarDestacado('productos', producto.id, true, producto.destacado_hasta);
+      solicitud.estado = 'aprobada';
+      solicitud.aprobada_en = new Date().toISOString();
+    }
+    if (rechazar) solicitud.estado = 'rechazada';
+    writeLocalState(state);
+    renderAdminPanel();
+    await cargarDatos();
+  } catch (error) {
+    alert(`No se pudo procesar la solicitud: ${error.message}`);
   }
-  if (rechazar) solicitud.estado = 'rechazada';
-  writeLocalState(state);
-  renderAdminPanel();
-  cargarDatos();
 });
 
 $('#p-avatar').addEventListener('change', () => {
@@ -1261,9 +1330,12 @@ $('#form-reseña').addEventListener('submit', async e => {
 function actualizarSlogan() {
   const el = $('#slogan-rotativo');
   if (!el) return;
+  const hora = new Date().getHours();
+  const horario = hora >= 6 && hora < 12 ? 'mañana' : hora >= 12 && hora < 18 ? 'tarde' : 'noche';
+  const frases = frasesPorHorario[horario];
   let indice = Number(el.dataset.fraseIndice || 0);
-  el.textContent = fraseSlogan[indice % fraseSlogan.length];
-  el.dataset.fraseIndice = String((indice + 1) % fraseSlogan.length);
+  el.textContent = frases[indice % frases.length];
+  el.dataset.fraseIndice = String((indice + 1) % frases.length);
 }
 
 actualizarSlogan();
