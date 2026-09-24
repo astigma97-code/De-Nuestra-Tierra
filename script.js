@@ -66,9 +66,18 @@ function guardarProductoLocal(producto) {
 }
 async function guardarDestacado(tabla, id, destacado, hasta) {
   const completo = await db.from(tabla).update({ destacado, destacado_hasta: hasta }).eq('id', id);
-  if (!completo.error) return;
-  const compatible = await db.from(tabla).update({ destacado }).eq('id', id);
-  if (compatible.error) throw compatible.error;
+  if (completo.error) {
+    const compatible = await db.from(tabla).update({ destacado }).eq('id', id);
+    if (compatible.error) throw compatible.error;
+  }
+  const verificado = await db.from(tabla).select('id, destacado, destacado_hasta').eq('id', id).maybeSingle();
+  if (verificado.error) throw verificado.error;
+  if (!verificado.data || Boolean(verificado.data.destacado) !== Boolean(destacado)) {
+    throw new Error('El destacado no pudo guardarse. Verifica los permisos de Supabase.');
+  }
+  if (hasta && verificado.data.destacado_hasta && new Date(verificado.data.destacado_hasta).getTime() !== new Date(hasta).getTime()) {
+    throw new Error('La fecha guardada no coincide con la fecha seleccionada.');
+  }
 }
 
 async function eliminarRegistros(tabla, filtros = []) {
@@ -404,7 +413,7 @@ async function cargarDatos() {
 async function limpiarDestacadosVencidos() {
   const vencidos = productos.filter(p => p.destacado && !destacadoVigente(p));
   const tiendasVencidas = Object.values(vendedores).filter(v => v.destacado && !destacadoVigente(v));
-  if (!vencidos.length && !tiendasVencidas.length) return;
+  if (!vencidos.length && !tiendasVencidas.length) return false;
   const local = readLocalState();
   vencidos.forEach(producto => {
     producto.destacado = false;
@@ -429,6 +438,19 @@ async function limpiarDestacadosVencidos() {
     ...vencidos.map(producto => guardarDestacado('productos', producto.id, false, null)),
     ...tiendasVencidas.map(tienda => guardarDestacado('vendedores', tienda.id, false, null))
   ]);
+  return true;
+}
+
+async function revisarExpiraciones() {
+  try {
+    const cambio = await limpiarDestacadosVencidos();
+    if (!cambio) return;
+    pintarVitrina();
+    pintarVendedores();
+    if (modalAdmin.open) renderAdminPanel();
+  } catch (error) {
+    console.error('No se pudieron actualizar los destacados vencidos:', error);
+  }
 }
 
 /* ---------- Tarjeta de producto ---------- */
@@ -446,9 +468,10 @@ function tarjetaProducto(p) {
   const destacado = destacadoVigente(p) ? '<span class="vendedor-destacado" title="Producto destacado" aria-label="Producto destacado">★</span>' : '';
   const destacadoActivo = destacadoVigente(p);
   return `<article class="producto ${destacadoActivo ? 'producto--destacado' : ''}" data-id="${p.id}" data-categoria="${categoriaFiltro(p.categoria)}" tabindex="0" role="button" aria-label="Ver ${esc(p.nombre)}">
+    ${destacado}
     <div class="producto-imagen">
       <span class="producto-etiqueta">${esc(p.categoria || 'Varios')}</span>
-      ${destacado}${badgeFotos}${img}
+      ${badgeFotos}${img}
     </div>
     <div class="producto-cuerpo">
       <h3>${esc(p.nombre)}</h3>
@@ -764,6 +787,14 @@ const traducir = m => ({
   'Email not confirmed': 'Confirma tu correo antes de entrar.'
 }[m] || m);
 
+$('#c-pass-mostrar').addEventListener('click', e => {
+  const campo = $('#c-pass');
+  const visible = campo.type === 'text';
+  campo.type = visible ? 'password' : 'text';
+  e.currentTarget.setAttribute('aria-label', visible ? 'Mostrar contraseña' : 'Ocultar contraseña');
+  e.currentTarget.setAttribute('aria-pressed', String(!visible));
+});
+
 $('#form-entrar').addEventListener('submit', async e => {
   e.preventDefault();
   const btn = e.target.querySelector('button[type="submit"]'); btn.disabled = true;
@@ -805,6 +836,12 @@ $('#form-crear').addEventListener('submit', async e => {
     const responsable = $('#c-responsable').value.trim();
     const email = $('#c-email').value.trim();
     const password = $('#c-pass').value;
+    const passwordConfirmada = $('#c-pass-confirmar').value;
+    if (password !== passwordConfirmada) {
+      errAuth('Las contraseñas no coinciden. Escríbelas nuevamente.', false);
+      btn.disabled = false;
+      return;
+    }
     const { data, error } = await db.auth.signUp({
       email,
       password,
@@ -924,6 +961,11 @@ function renderAdminPanel() {
         <button type="button" class="boton-destacar" data-tienda-destacar="${v.id}">${destacadoVigente(v) ? 'Quitar destacado' : 'Destacar'}</button>
         <button type="button" class="boton-peligro" data-tienda-eliminar="${v.id}">Eliminar</button>
       </div>
+      <div class="admin-fecha-destacado">
+        <label for="expiracion-tienda-${v.id}">Expira el</label>
+        <input id="expiracion-tienda-${v.id}" type="datetime-local" min="${fechaParaCampo(new Date())}" value="${fechaParaCampo(v.destacado_hasta)}" data-expiracion-tienda="${v.id}">
+        <button type="button" class="boton-ok" data-guardar-expiracion-tienda="${v.id}">Guardar fecha</button>
+      </div>
     </div>
   `).join('') || '<p class="producto-detalle">No hay tiendas registradas.</p>';
 
@@ -1018,7 +1060,38 @@ $('#admin-reseñas').addEventListener('click', e => {
 $('#admin-tiendas').addEventListener('click', async e => {
   const state = readLocalState();
   const destacar = e.target.closest('[data-tienda-destacar]');
+  const guardarFecha = e.target.closest('[data-guardar-expiracion-tienda]');
   const eliminar = e.target.closest('[data-tienda-eliminar]');
+  if (guardarFecha) {
+    const tienda = vendedores[guardarFecha.dataset.guardarExpiracionTienda];
+    const campo = document.querySelector(`[data-expiracion-tienda="${guardarFecha.dataset.guardarExpiracionTienda}"]`);
+    if (!tienda || !campo) return;
+    if (!campo.value) {
+      tienda.destacado = false;
+      tienda.destacado_hasta = null;
+    } else {
+      const fecha = new Date(campo.value);
+      if (Number.isNaN(fecha.getTime()) || fecha <= new Date()) {
+        alert('Selecciona una fecha futura para activar el destacado.');
+        return;
+      }
+      tienda.destacado = true;
+      tienda.destacado_hasta = fecha.toISOString();
+    }
+    try {
+      guardarFecha.disabled = true;
+      await guardarDestacado('vendedores', tienda.id, tienda.destacado, tienda.destacado_hasta);
+      state.vendedores[tienda.id] = { ...(state.vendedores[tienda.id] || {}), ...tienda };
+      writeLocalState(state);
+      await cargarDatos();
+      renderAdminPanel();
+    } catch (error) {
+      alert(`No se pudo guardar la fecha del destacado: ${error.message}`);
+    } finally {
+      guardarFecha.disabled = false;
+    }
+    return;
+  }
   if (destacar) {
     const tienda = vendedores[destacar.dataset.tiendaDestacar];
     if (tienda) {
@@ -1078,6 +1151,7 @@ $('#admin-productos').addEventListener('click', async e => {
       producto.destacado_hasta = fecha.toISOString();
     }
     try {
+      guardarFecha.disabled = true;
       await guardarDestacado('productos', producto.id, producto.destacado, producto.destacado_hasta);
       guardarProductoLocal(producto);
       await cargarDatos();
@@ -1085,6 +1159,8 @@ $('#admin-productos').addEventListener('click', async e => {
       renderAdminPanel();
     } catch (error) {
       alert(`No se pudo guardar la fecha del destacado: ${error.message}`);
+    } finally {
+      guardarFecha.disabled = false;
     }
     return;
   }
@@ -1422,6 +1498,7 @@ $$('dialog').forEach(d => d.addEventListener('click', e => { if (e.target === d)
 
 /* ---------- Arranque ---------- */
 pintarZonaUsuario();
+setInterval(revisarExpiraciones, 60 * 1000);
 db.auth.getSession().then(async ({ data }) => {
   usuario = data.session?.user || null;
   await cargarPerfil();
