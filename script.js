@@ -47,7 +47,7 @@ const categoriaFiltro = categoria => {
   return { 'panaderia-y-reposteria': 'panaderia', 'textiles-y-ropa': 'textiles' }[clave] || clave;
 };
 const fechaCorta = fecha => new Date(fecha).toLocaleDateString('es-PE');
-const destacadoVigente = p => Boolean(p.destacado && p.destacado_hasta && new Date(p.destacado_hasta) > new Date());
+const destacadoVigente = p => Boolean(p.destacado && (!p.destacado_hasta || new Date(p.destacado_hasta) > new Date()));
 const fechaParaCampo = fecha => {
   if (!fecha) return '';
   const d = new Date(fecha);
@@ -56,15 +56,18 @@ const fechaParaCampo = fecha => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
 const categoriaClase = categoria => normalizar(categoria || 'otro').replace(/[^a-z0-9]+/g, '-');
+const etiquetasProducto = producto => Array.isArray(producto?.tags)
+  ? producto.tags.filter(Boolean).map(String).slice(0, 5)
+  : [];
 function guardarProductoLocal(producto) {
   const state = readLocalState();
   state.productos = [...state.productos.filter(item => item.id !== producto.id), { ...producto }];
   writeLocalState(state);
 }
 async function guardarDestacado(tabla, id, destacado, hasta) {
-  const completo = await db.from(tabla).upsert({ id, destacado, destacado_hasta: hasta });
+  const completo = await db.from(tabla).update({ destacado, destacado_hasta: hasta }).eq('id', id);
   if (!completo.error) return;
-  const compatible = await db.from(tabla).upsert({ id, destacado });
+  const compatible = await db.from(tabla).update({ destacado }).eq('id', id);
   if (compatible.error) throw compatible.error;
 }
 
@@ -143,6 +146,21 @@ const makeLocalDb = () => {
           data = data.filter(row => String(row[field]) === String(value));
         }
         return { data: data[0] || null };
+      },
+      update: record => {
+        const modification = {
+          filters: [],
+          eq: (field, value) => { modification.filters.push([field, value]); return modification; },
+          then: resolve => {
+            const coincide = row => modification.filters.every(([field, value]) => String(row[field]) === String(value));
+            rows.forEach(row => {
+              if (coincide(row)) Object.assign(row, record);
+            });
+            save(snapshot);
+            resolve({ error: null, data: rows.filter(coincide) });
+          }
+        };
+        return modification;
       },
       delete: () => {
         const deletion = {
@@ -275,6 +293,9 @@ document.head.insertAdjacentHTML('beforeend', '<style>[hidden]{display:none!impo
 
 const usaSupabase = Boolean(window.supabase && !SUPABASE_URL.includes('TU-PROYECTO'));
 const db = usaSupabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : makeLocalDb();
+const URL_REDIRECCION_AUTH = `${window.location.origin}${window.location.pathname}`;
+const retornoConfirmacion = new URLSearchParams(window.location.hash.slice(1));
+let vieneDeConfirmacion = retornoConfirmacion.get('type') === 'signup';
 
 /* ---------- Estado ---------- */
 let productos = [], vendedores = {}, usuario = null, miPerfil = null;
@@ -348,10 +369,13 @@ async function cargarDatos() {
     ]);
     if (p.error || v.error) throw new Error(p.error?.message || v.error?.message || 'No se pudieron cargar los datos.');
     const local = readLocalState();
-    productos = (p.data || []).filter(producto => !esDatoDemo(producto)).map(producto => ({
-      ...producto,
-      ...(local.productos.find(item => item.id === producto.id) || {})
-    }));
+    productos = (p.data || []).filter(producto => !esDatoDemo(producto)).map(producto => {
+      const localProducto = local.productos.find(item => item.id === producto.id);
+      return {
+        ...producto,
+        ...(localProducto && !Array.isArray(producto.tags) ? { tags: localProducto.tags } : {})
+      };
+    });
     vendedores = Object.fromEntries((v.data || []).filter(vendedor => !esDatoDemo(vendedor)).map(x => [x.id, {
       ...x,
       ...(local.vendedores[x.id] || {})
@@ -415,9 +439,13 @@ function tarjetaProducto(p) {
     ? `<img src="${esc(urlImagen(fotos[0]))}" alt="${esc(p.nombre)}" loading="lazy">`
     : `<span class="producto-emoji" aria-hidden="true">${p.emoji || EMOJI_CAT[p.categoria] || '🛒'}</span>`;
   const badgeFotos = fotos.length ? `<span class="producto-fotos">📷 ${fotos.length}</span>` : '';
-  const destacado = destacadoVigente(p) ? '<span class="producto-destacado">Destacado</span>' : '';
+  const etiquetas = etiquetasProducto(p);
+  const etiquetasHtml = etiquetas.length
+    ? `<div class="producto-tags" aria-label="Etiquetas del producto">${etiquetas.map(tag => `<span>${esc(tag)}</span>`).join('')}</div>`
+    : '';
+  const destacado = destacadoVigente(p) ? '<span class="vendedor-destacado" title="Producto destacado" aria-label="Producto destacado">★</span>' : '';
   const destacadoActivo = destacadoVigente(p);
-  return `<article class="producto ${destacadoActivo ? 'producto--destacado' : ''}" data-id="${p.id}" data-categoria="${categoriaClase(p.categoria)}" tabindex="0" role="button" aria-label="Ver ${esc(p.nombre)}">
+  return `<article class="producto ${destacadoActivo ? 'producto--destacado' : ''}" data-id="${p.id}" data-categoria="${categoriaFiltro(p.categoria)}" tabindex="0" role="button" aria-label="Ver ${esc(p.nombre)}">
     <div class="producto-imagen">
       <span class="producto-etiqueta">${esc(p.categoria || 'Varios')}</span>
       ${destacado}${badgeFotos}${img}
@@ -425,6 +453,7 @@ function tarjetaProducto(p) {
     <div class="producto-cuerpo">
       <h3>${esc(p.nombre)}</h3>
       ${p.detalle ? `<p class="producto-detalle">${esc(p.detalle)}</p>` : ''}
+      ${etiquetasHtml}
       <button type="button" class="producto-vendedor" data-tienda="${p.vendedor_id}">🏪 ${esc(v.negocio || 'Vendedor local')}</button>
       <div class="producto-pie">
         <span class="producto-precio">S/ ${fmtPrecio(p.precio)}</span>
@@ -442,7 +471,7 @@ function pintarVitrina() {
   const q = normalizar(estado.busqueda.trim());
   const lista = productos.filter(p => {
     const v = vendedores[p.vendedor_id] || {};
-    const tags = (p.tags || []).map(t => normalizar(String(t))).join(' ');
+    const tags = etiquetasProducto(p).map(t => normalizar(t)).join(' ');
     const porFiltro = estado.filtro === 'todos' || categoriaFiltro(p.categoria) === estado.filtro;
     const texto = normalizar(`${p.nombre} ${p.detalle || ''} ${p.categoria || ''} ${v.negocio || ''} ${tags}`);
     return porFiltro && (!q || texto.includes(q));
@@ -533,7 +562,7 @@ function abrirDetalle(id) {
   $('#detalle-nombre').textContent = p.nombre;
   $('#detalle-detalle').textContent = p.detalle || 'Escríbele al vendedor por WhatsApp para más detalles.';
   $('#detalle-precio').textContent = `S/ ${fmtPrecio(p.precio)}`;
-  const tags = Array.isArray(p.tags) && p.tags.length ? ` · ${p.tags.join(', ')}` : '';
+  const tags = etiquetasProducto(p).length ? ` · ${etiquetasProducto(p).join(', ')}` : '';
   $('#detalle-detalle').textContent = `${p.detalle || 'Escríbele al vendedor por WhatsApp para más detalles.'}${tags}`;
   const num = soloDigitos(v.whatsapp);
   $('#detalle-wsp').href = `https://wa.me/${num}?text=${encodeURIComponent(`Hola ${v.negocio || ''}, vi "${p.nombre}" en DE NUESTRA TIERRA y quiero hacer un pedido.`)}`;
@@ -647,6 +676,26 @@ async function cargarPerfil() {
   miPerfil = r.data;
 }
 
+async function completarPerfilTrasConfirmacion() {
+  if (!usuario || usuario.email === ADMIN_EMAIL || miPerfil || !usuario.user_metadata?.negocio) return;
+  const metadata = usuario.user_metadata;
+  const { error } = await db.from('vendedores').upsert({
+    id: usuario.id,
+    negocio: metadata.negocio,
+    responsable: metadata.responsable || '',
+    whatsapp: metadata.whatsapp || '',
+    categoria: metadata.categoria || 'Otro',
+    descripcion: 'Tienda creada desde DE NUESTRA TIERRA.'
+  });
+  if (error) throw error;
+  await cargarPerfil();
+}
+
+function limpiarRetornoAuth() {
+  if (!window.location.hash) return;
+  window.history.replaceState({}, document.title, `${window.location.pathname}${window.location.search}`);
+}
+
 function pintarZonaUsuario() {
   if (usuario && usuario.email === ADMIN_EMAIL) {
     zona.innerHTML = `<button type="button" class="chip chip-avatar chip--activo" data-accion="admin" title="Panel de administración"> <span class="admin-logo"><img src="DE%20NUESTRA%20TIERRA%20SM.jpeg" alt=""></span>Administración</button> <button type="button" class="boton boton--linea" data-accion="salir">Salir</button>`;
@@ -673,7 +722,18 @@ zona.addEventListener('click', e => {
 
 db.auth.onAuthStateChange((_ev, ses) => {
   usuario = ses?.user || null;
-  cargarPerfil().then(() => { pintarZonaUsuario(); if (usuario) pintarMisProductos(); });
+  cargarPerfil()
+    .then(completarPerfilTrasConfirmacion)
+    .then(() => {
+      pintarZonaUsuario();
+      if (usuario) pintarMisProductos();
+      if (vieneDeConfirmacion && usuario) {
+        limpiarRetornoAuth();
+        vieneDeConfirmacion = false;
+        abrirPanel();
+      }
+    })
+    .catch(error => console.error('No se pudo completar el perfil:', error));
 });
 
 /* ---------- Modal auth ---------- */
@@ -748,11 +808,19 @@ $('#form-crear').addEventListener('submit', async e => {
     const { data, error } = await db.auth.signUp({
       email,
       password,
-      options: { data: { negocio } }
+      options: {
+        emailRedirectTo: URL_REDIRECCION_AUTH,
+        data: {
+          negocio,
+          responsable,
+          whatsapp: soloDigitos($('#c-whats').value),
+          categoria: $('#c-categoria').value
+        }
+      }
     });
     if (error) throw new Error(traducir(error.message));
     if (!data.session) {
-      errAuth('Cuenta creada ✅ Revisa tu correo para confirmarla y luego entra con "Ya tengo cuenta".', true);
+      errAuth('Cuenta creada ✅ Abre el enlace del correo para confirmar. Volverás aquí con tu sesión iniciada automáticamente.', true);
       btn.disabled = false; return;
     }
     usuario = data.session.user;
@@ -1195,7 +1263,8 @@ $('#form-producto').addEventListener('submit', async e => {
       categoria: $('#g-categoria').value,
       precio: parseFloat($('#g-precio').value) || 0,
       fotos,
-      emoji: EMOJI_CAT[$('#g-categoria').value] || '🛒'
+      emoji: EMOJI_CAT[$('#g-categoria').value] || '🛒',
+      tags
     };
     const { data: creado, error } = await db.from('productos').insert(payload);
     if (error) throw error;
